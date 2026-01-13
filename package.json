@@ -4,14 +4,18 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"npm run dev:ui\" \"npm run dev:agent\" --names ui,agent --prefix-colors blue,green --kill-others",
+    "dev": "concurrently \"npm run dev:ui\" \"npm run dev:agent\" --names ui,agent --prefix-colors blue,green",
+    "dev:ts": "concurrently \"npm run dev:ui\" \"npm run dev:agent-ts\" --names ui,agent-ts --prefix-colors blue,cyan",
     "dev:debug": "LOG_LEVEL=debug npm run dev",
     "dev:agent": "./scripts/run-agent.sh || scripts/run-agent.bat",
+    "dev:agent-ts": "./scripts/run-agent-ts.sh || scripts/run-agent-ts.bat",
     "dev:ui": "next dev --turbopack",
     "build": "next build",
+    "build:agent-ts": "cd agent-ts && npm run build",
     "start": "next start",
     "lint": "eslint .",
     "install:agent": "./scripts/setup-agent.sh || scripts\\setup-agent.bat",
+    "install:agent-ts": "./scripts/setup-agent-ts.sh || cd agent-ts && npm install",
     "postinstall": "npm run install:agent"
   },
   "dependencies": {

@@ -1,0 +1,331 @@
+/**
+ * Copyright 2025 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { serveStatic } from '@hono/node-server/serve-static';
+import { serve } from '@hono/node-server';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import * as fs from 'fs';
+
+import { RestaurantAgent } from './agent.js';
+import { RestaurantAgentExecutor } from './agent-executor.js';
+import { getA2UIAgentExtension } from './a2ui-extension.js';
+import { logger } from './logger.js';
+import { SERVER_CONFIG, hasLLMProvider, getLLMConfigErrorMessage } from './config.js';
+import type { AgentCard, RequestContext } from './types.js';
+
+// Load environment variables (simple implementation for Node.js)
+function loadEnv(): void {
+  try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    const envPath = join(__dirname, '..', '.env');
+    
+    if (fs.existsSync(envPath)) {
+      const envContent = fs.readFileSync(envPath, 'utf-8');
+      for (const line of envContent.split('\n')) {
+        const trimmedLine = line.trim();
+        if (trimmedLine && !trimmedLine.startsWith('#')) {
+          const [key, ...valueParts] = trimmedLine.split('=');
+          if (key && valueParts.length > 0) {
+            const value = valueParts.join('=').replace(/^["']|["']$/g, '');
+            if (!process.env[key]) {
+              process.env[key] = value;
+            }
+          }
+        }
+      }
+    }
+  } catch (error) {
+    logger.warn(`Could not load .env file: ${error}`);
+  }
+}
+
+// Task store for managing tasks
+class InMemoryTaskStore {
+  private tasks: Map<string, {
+    id: string;
+    context_id: string;
+    state: string;
+    messages: Array<{ role: string; parts: Array<{ type: string; text?: string; data?: unknown }> }>;
+  }> = new Map();
+
+  getTask(taskId: string) {
+    return this.tasks.get(taskId);
+  }
+
+  createTask(contextId: string, initialMessage?: { parts: Array<{ type: string; text?: string; data?: unknown }> }) {
+    const taskId = `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const task = {
+      id: taskId,
+      context_id: contextId,
+      state: 'working',
+      messages: initialMessage ? [{ role: 'user', parts: initialMessage.parts }] : [],
+    };
+    this.tasks.set(taskId, task);
+    return task;
+  }
+
+  updateTask(taskId: string, updates: Partial<{ state: string; messages: Array<{ role: string; parts: Array<{ type: string; text?: string; data?: unknown }> }> }>) {
+    const task = this.tasks.get(taskId);
+    if (task) {
+      Object.assign(task, updates);
+    }
+  }
+}
+
+// Main server function
+async function main(): Promise<void> {
+  loadEnv();
+
+  const host = SERVER_CONFIG.host;
+  const port = SERVER_CONFIG.port;
+
+  // Validate API key
+  if (!hasLLMProvider()) {
+    logger.error(getLLMConfigErrorMessage());
+    process.exit(1);
+  }
+
+  const baseUrl = `http://${host}:${port}`;
+
+  // Create agent card
+  const agentCard: AgentCard = {
+    name: 'Restaurant Agent',
+    description: 'This agent helps find restaurants based on user criteria.',
+    url: baseUrl,
+    version: '1.0.0',
+    default_input_modes: RestaurantAgent.SUPPORTED_CONTENT_TYPES,
+    default_output_modes: RestaurantAgent.SUPPORTED_CONTENT_TYPES,
+    capabilities: {
+      streaming: true,
+      extensions: [getA2UIAgentExtension()],
+    },
+    skills: [
+      {
+        id: 'find_restaurants',
+        name: 'Find Restaurants Tool',
+        description: 'Helps find restaurants based on user criteria (e.g., cuisine, location).',
+        tags: ['restaurant', 'finder'],
+        examples: ['Find me the top 10 chinese restaurants in the US'],
+      },
+    ],
+  };
+
+  const agentExecutor = new RestaurantAgentExecutor(baseUrl);
+  const taskStore = new InMemoryTaskStore();
+
+  // Create Hono app
+  const app = new Hono();
+
+  // CORS middleware
+  app.use('*', cors({
+    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    credentials: true,
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+  }));
+
+  // Serve static files (images)
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+  const imagesDir = join(__dirname, '..', 'images');
+  
+  // Check if images directory exists, create it if not
+  if (!fs.existsSync(imagesDir)) {
+    fs.mkdirSync(imagesDir, { recursive: true });
+  }
+
+  app.use('/static/*', serveStatic({ root: join(__dirname, '..') }));
+
+  // Agent card endpoint (A2A protocol)
+  app.get('/.well-known/agent.json', (c) => {
+    return c.json(agentCard);
+  });
+
+  // Health check
+  app.get('/health', (c) => {
+    return c.json({ status: 'ok' });
+  });
+
+  // Main A2A message endpoint
+  app.post('/', async (c) => {
+    try {
+      const body = await c.req.json();
+      logger.info(`Received request: ${JSON.stringify(body).substring(0, 500)}`);
+
+      const message = body.message || body;
+      const requestedExtensions = body.extensions || [];
+
+      const context: RequestContext = {
+        message: {
+          parts: message.parts || [{ type: 'text', text: message.text || '' }],
+        },
+        current_task: body.task || null,
+        requested_extensions: requestedExtensions,
+      };
+
+      // Create or get task
+      let task = context.current_task;
+      if (!task) {
+        task = taskStore.createTask(
+          body.context_id || `ctx-${Date.now()}`,
+          context.message
+        );
+      }
+
+      const responses: Array<{
+        type: string;
+        task?: {
+          id: string;
+          context_id: string;
+          state: string;
+        };
+        message?: {
+          role: string;
+          parts: Array<{ type: string; text?: string; data?: unknown }>;
+        };
+      }> = [];
+
+      // Execute agent
+      await agentExecutor.execute(context, async (data) => {
+        taskStore.updateTask(task!.id, { state: data.state });
+        
+        responses.push({
+          type: 'task_update',
+          task: {
+            id: task!.id,
+            context_id: task!.context_id,
+            state: data.state,
+          },
+          message: {
+            role: 'agent',
+            parts: data.parts as Array<{ type: string; text?: string; data?: unknown }>,
+          },
+        });
+      });
+
+      // Return the last response or all responses
+      if (responses.length > 0) {
+        return c.json(responses[responses.length - 1]);
+      }
+
+      return c.json({ error: 'No response generated' }, 500);
+
+    } catch (error) {
+      logger.error(`Error processing request: ${error}`);
+      return c.json({ error: `Internal server error: ${error}` }, 500);
+    }
+  });
+
+  // SSE streaming endpoint (for streaming responses)
+  app.post('/stream', async (c) => {
+    try {
+      const body = await c.req.json();
+      logger.info(`Received streaming request: ${JSON.stringify(body).substring(0, 500)}`);
+
+      const message = body.message || body;
+      const requestedExtensions = body.extensions || [];
+
+      const context: RequestContext = {
+        message: {
+          parts: message.parts || [{ type: 'text', text: message.text || '' }],
+        },
+        current_task: body.task || null,
+        requested_extensions: requestedExtensions,
+      };
+
+      const task = context.current_task || taskStore.createTask(
+        body.context_id || `ctx-${Date.now()}`,
+        context.message
+      );
+
+      // Set up SSE headers
+      c.header('Content-Type', 'text/event-stream');
+      c.header('Cache-Control', 'no-cache');
+      c.header('Connection', 'keep-alive');
+
+      return new Response(
+        new ReadableStream({
+          async start(controller) {
+            const encoder = new TextEncoder();
+
+            try {
+              await agentExecutor.execute(context, async (data) => {
+                taskStore.updateTask(task!.id, { state: data.state });
+
+                const event = {
+                  type: 'task_update',
+                  task: {
+                    id: task!.id,
+                    context_id: task!.context_id,
+                    state: data.state,
+                  },
+                  message: {
+                    role: 'agent',
+                    parts: data.parts,
+                  },
+                };
+
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+
+                if (data.isFinal) {
+                  controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+                }
+              });
+            } catch (error) {
+              logger.error(`Streaming error: ${error}`);
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: String(error) })}\n\n`));
+            } finally {
+              controller.close();
+            }
+          },
+        }),
+        {
+          headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+          },
+        }
+      );
+
+    } catch (error) {
+      logger.error(`Error setting up stream: ${error}`);
+      return c.json({ error: `Internal server error: ${error}` }, 500);
+    }
+  });
+
+  // Start server
+  logger.info(`Starting Restaurant Agent server at ${baseUrl}`);
+  logger.info(`Agent card available at ${baseUrl}/.well-known/agent.json`);
+
+  serve({
+    fetch: app.fetch,
+    hostname: host,
+    port,
+  }, (info) => {
+    logger.info(`Server is running on http://${info.address}:${info.port}`);
+  });
+}
+
+// Run main
+main().catch((error) => {
+  logger.error(`Failed to start server: ${error}`);
+  process.exit(1);
+});

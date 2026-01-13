@@ -1,0 +1,31 @@
+{
+  "name": "a2ui-restaurant-finder-ts",
+  "version": "0.1.0",
+  "description": "Sample TypeScript Restaurant finder agent that uses a2ui UI and is hosted as an A2A server agent. Runs in V8 environment.",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "dev:watch": "tsx watch src/index.ts",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@a2a-js/sdk": "0.2.5",
+    "@hono/node-server": "^1.14.3",
+    "ajv": "^8.17.1",
+    "hono": "^4.6.18",
+    "openai": "^4.98.0",
+    "zod": "^3.25.75"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "tsx": "^4.19.3",
+    "typescript": "5.9.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
