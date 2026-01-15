@@ -1,20 +1,4 @@
 /**
- * Copyright 2025 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/**
  * Environment configuration
  * All environment variables should be accessed through this file
  */
@@ -23,7 +7,7 @@ const HOST:string = 'localhost';
 const PORT:string = '10002';
 const LOG_LEVEL:string = 'info';
 
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_MODEL = 'gemini-2.5-flash';
 const OPENROUTER_APP_NAME = 'A2UI Restaurant Agent';
 const OPENROUTER_REFERER = 'A2UI.org';
@@ -82,7 +66,7 @@ export const LLM_CONFIG = {
  * Priority: OpenRouter > OpenAI > Gemini
  */
 export function getActiveLLMProvider() {
-  if (LLM_CONFIG.openrouter.apiKey) {
+  if (LLM_CONFIG.openrouter.apiKey && String(LLM_CONFIG.openrouter.apiKey).trim()) {
     return {
       name: 'openrouter' as const,
       apiKey: LLM_CONFIG.openrouter.apiKey,
@@ -95,7 +79,7 @@ export function getActiveLLMProvider() {
     };
   }
 
-  if (LLM_CONFIG.openai.apiKey) {
+  if (LLM_CONFIG.openai.apiKey && String(LLM_CONFIG.openai.apiKey).trim()) {
     return {
       name: 'openai' as const,
       apiKey: LLM_CONFIG.openai.apiKey,
@@ -105,7 +89,7 @@ export function getActiveLLMProvider() {
     };
   }
 
-  if (LLM_CONFIG.gemini.apiKey) {
+  if (LLM_CONFIG.gemini.apiKey && String(LLM_CONFIG.gemini.apiKey).trim()) {
     return {
       name: 'gemini' as const,
       apiKey: LLM_CONFIG.gemini.apiKey,
@@ -152,3 +136,5 @@ export function getLLMConfigErrorMessage(): string {
   - GEMINI_API_KEY
   - Or set GOOGLE_GENAI_USE_VERTEXAI=TRUE for Vertex AI`;
 }
+
+export const baseUrl = `http://${HOST}:${PORT}`;

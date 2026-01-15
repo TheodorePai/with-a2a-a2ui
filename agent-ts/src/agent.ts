@@ -1,19 +1,3 @@
-/**
- * Copyright 2025 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 import OpenAI from 'openai';
 import Ajv from 'ajv';
 import { AGENT_INSTRUCTION, A2UI_SCHEMA, getUIPrompt, getTextPrompt } from './prompt-builder.js';
@@ -50,6 +34,11 @@ export class RestaurantAgent {
     }
 
     logger.info(`Using ${provider.name} as LLM provider`);
+    
+    // Validate API key is not empty
+    if (!provider.apiKey || provider.apiKey.trim() === '') {
+      throw new Error(`LLM provider "${provider.name}" is configured but API key is empty. Please set the corresponding environment variable.`);
+    }
     
     const openaiConfig: ConstructorParameters<typeof OpenAI>[0] = {
       apiKey: provider.apiKey,
@@ -189,9 +178,19 @@ export class RestaurantAgent {
         }
 
       } catch (error) {
-        logger.error(`Error in stream: ${error}`);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error(`Error in stream: ${errorMessage}`);
+        
+        // Log detailed error information for debugging
+        if (error instanceof Error && error.message.includes('401')) {
+          logger.error('Authentication error (401). Check your API key configuration:');
+          logger.error('  - Ensure OPENROUTER_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY is set');
+          logger.error('  - Verify the API key is valid and not expired');
+          logger.error(`  - Using model: ${this.model}`);
+        }
+        
         if (attempt <= maxRetries) {
-          currentQuery = `An error occurred. Please retry the original request: '${query}'`;
+          currentQuery = `An error occurred: ${errorMessage}. Please retry the original request: '${query}'`;
           continue;
         }
         yield { is_task_complete: true, content: "I'm sorry, I encountered an error and couldn't process your request." };
