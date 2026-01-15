@@ -45,6 +45,7 @@ class RestaurantAgentExecutor {
 
     console.info(`--- Client requested extensions: ${requestContext.context?.requestedExtensions || []} ---`);
     const use_ui = try_activate_a2ui_extension(requestContext);
+    console.log(`use_ui: ${use_ui}`)
 
     // Determine which agent to use based on whether the a2ui extension is active.
     const agent = use_ui ? this.ui_agent : this.text_agent;

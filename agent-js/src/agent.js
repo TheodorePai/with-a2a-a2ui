@@ -1,5 +1,5 @@
 // 引入官方 adk 模块
-const { LlmAgent, Runner, InMemoryArtifactService, InMemoryMemoryService, InMemorySessionService, isFinalResponse } = require("@google/adk");
+const { LlmAgent, Runner, InMemoryArtifactService, InMemoryMemoryService, InMemorySessionService, isFinalResponse, BuiltInCodeExecutor } = require("@google/adk");
 const { FunctionTool } = require("@google/adk");
 const { z } = require('zod');
 
@@ -34,7 +34,13 @@ const AGENT_INSTRUCTION = `
 `;
 
  // 添加模拟数据开关
-const useMockData = true; // 设置为true使用模拟数据，false使用真实实现
+const useMockData = false; // 设置为true使用模拟数据，false使用真实实现
+
+// 暂时解决adk-js的bug
+class NoOpCodeExecutor extends BuiltInCodeExecutor {
+    processLlmRequest() { }
+}
+
 
 class RestaurantAgent {
     static SUPPORTED_CONTENT_TYPES = ["text", "text/plain"];
@@ -95,7 +101,8 @@ class RestaurantAgent {
             name: "restaurant_agent",
             description: "An agent that finds restaurants and helps book tables.",
             instruction: instruction,
-            tools: [getRestaurantsTool]
+            tools: [getRestaurantsTool],
+            codeExecutor: new NoOpCodeExecutor(),
         });
     }
 
@@ -183,7 +190,7 @@ class RestaurantAgent {
                 });
 
                 for await (const event of stream) {
-                    logger.info(`Event from runner: ${JSON.stringify(event)}`);
+                    // logger.info(`Event from runner: ${JSON.stringify(event)}`);
                     if (isFinalResponse(event)) {
                         finalResponseContent = event.content?.parts
                             ?.map(p => p.text)
@@ -230,6 +237,8 @@ class RestaurantAgent {
             if (isValid) {
                 yield { is_task_complete: true, content: finalResponseContent };
                 return;
+            }else {
+                console.log(`Invalid UI response: ${finalResponseContent}`)
             }
 
             // 失败重试逻辑

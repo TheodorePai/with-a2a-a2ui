@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
+const A2UI_EXTENSION_URL = 'https://a2ui.org/a2a-extension/a2ui/v0.8';
 /**
  * Tries to activate the A2UI extension based on the request context.
  * @param {import('@a2a-js/sdk/server').RequestContext} requestContext - The request context
@@ -19,8 +19,9 @@
  */
 function try_activate_a2ui_extension(requestContext) {
   // Check if A2UI extension is requested
+  console.log(`----requestContext.context.requestedExtensions: ${requestContext.context.requestedExtensions}`)
   if (requestContext.context && requestContext.context.requestedExtensions) {
-    return requestContext.context.requestedExtensions.includes('a2ui');
+    return requestContext.context.requestedExtensions.includes(A2UI_EXTENSION_URL);
   }
   return false;
 }
@@ -39,5 +40,6 @@ function create_a2ui_part(uiMessage) {
 
 module.exports = {
   try_activate_a2ui_extension,
-  create_a2ui_part
+  create_a2ui_part,
+  A2UI_EXTENSION_URL
 };

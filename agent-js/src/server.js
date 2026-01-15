@@ -19,7 +19,9 @@ const dotenv = require('dotenv');
 const { A2AExpressApp, UserBuilder } = require('@a2a-js/sdk/server/express');
 const { DefaultRequestHandler, InMemoryTaskStore } = require('@a2a-js/sdk/server');
 const RestaurantAgentExecutor = require('./agent_executor');
-const { try_activate_a2ui_extension } = require('./a2ui_extension');
+const { A2UI_EXTENSION_URL } = require('./a2ui_extension');
+
+
 
 // Load environment variables
 dotenv.config();
@@ -48,28 +50,27 @@ async function main(options = {}) {
   
   try {
     // Check for appropriate API key based on the selected model
-    // const model = process.env.LITELLM_MODEL || 'gemini/gemini-2.5-flash';
-    // if (process.env.GOOGLE_GENAI_USE_VERTEXAI !== 'TRUE') {
-    //   if (model.toLowerCase().includes('gemini') && !process.env.GEMINI_API_KEY) {
-    //     throw new MissingAPIKeyError(
-    //       'GEMINI_API_KEY environment variable not set for Gemini model.'
-    //     );
-    //   } else if (model.toLowerCase().includes('dashscope') && !process.env.DASHSCOPE_API_KEY) {
-    //     throw new MissingAPIKeyError(
-    //       'DASHSCOPE_API_KEY environment variable not set for Qwen model.'
-    //     );
-    //   }
-    // }
+    const model = process.env.LITELLM_MODEL || 'gemini/gemini-2.5-flash';
+    if (process.env.GOOGLE_GENAI_USE_VERTEXAI !== 'TRUE') {
+      if (model.toLowerCase().includes('gemini') && !process.env.GEMINI_API_KEY) {
+        throw new MissingAPIKeyError(
+          'GEMINI_API_KEY environment variable not set for Gemini model.'
+        );
+      } else if (model.toLowerCase().includes('dashscope') && !process.env.DASHSCOPE_API_KEY) {
+        throw new MissingAPIKeyError(
+          'DASHSCOPE_API_KEY environment variable not set for Qwen model.'
+        );
+      }
+    }
 
     // Create capabilities
     const capabilities = {
       streaming: true,
       extensions: [
         {
-          uri: 'a2ui',
-          name: 'A2UI Extension',
-          description: 'Provides UI components for restaurant finder',
-          security: []
+          uri: A2UI_EXTENSION_URL,
+          // name: 'A2UI Extension',
+          description: 'Provides agent driven UI using the A2UI JSON format.'
         }
       ]
     };
