@@ -13,17 +13,17 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@a2a-js/sdk": "0.2.5",
-    "@hono/node-server": "^1.14.3",
+    "@a2a-js/sdk": "0.3.8",
+    "@hono/node-server": "^1.19.9",
     "ajv": "^8.17.1",
-    "hono": "^4.6.18",
-    "openai": "^4.98.0",
-    "zod": "^3.25.75"
+    "hono": "^4.11.4",
+    "openai": "^6.16.0",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
-    "@types/node": "^22.15.3",
-    "tsx": "^4.19.3",
-    "typescript": "5.9.2"
+    "@types/node": "^25.0.9",
+    "tsx": "^4.21.0",
+    "typescript": "5.9.3"
   },
   "engines": {
     "node": ">=20.0.0"
