@@ -19,17 +19,20 @@
     "postinstall": "npm run install:agent"
   },
   "dependencies": {
-    "@a2a-js/sdk": "0.2.5",
+    "@a2a-js/sdk": "^0.3.8",
     "@a2ui/lit": "^0.8.1",
-    "@ag-ui/a2a": "0.00.6",
-    "@copilotkit/a2ui-renderer": "0.0.2",
-    "@copilotkit/react-core": "~1.50.0",
-    "@copilotkit/runtime": "~1.50.0",
-    "hono": "^4.6.18",
-    "next": "^16.0.10",
+    "@ag-ui/a2a": "^0.00.6",
+    "@copilotkit/a2ui-renderer": "^1.51.2",
+    "@copilotkit/react-core": "^1.51.2",
+    "@copilotkit/runtime": "^1.51.2",
+    "hono": "^4.11.4",
+    "next": "^16.1.2",
+    "npx": "^10.2.2",
+    "pnpm": "^10.28.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "zod": "^3.25.75"
+    "uv": "^1.4.0",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.13",
