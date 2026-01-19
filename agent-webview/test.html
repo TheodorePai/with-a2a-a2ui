@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Agent WebView 浏览器测试</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .panel {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .panel-header {
+            background: #f8f9fa;
+            padding: 12px 16px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .panel-header h2 {
+            font-size: 16px;
+            color: #333;
+        }
+        
+        .panel-body {
+            padding: 16px;
+        }
+        
+        /* 状态指示器 */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .status-indicator.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-indicator.ready {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-indicator.mock {
+            background: #e7d4ff;
+            color: #6f42c1;
+        }
+        
+        .status-indicator.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-indicator.pending .status-dot { background: #ffc107; }
+        .status-indicator.ready .status-dot { background: #28a745; }
+        .status-indicator.mock .status-dot { background: #6f42c1; }
+        .status-indicator.error .status-dot { background: #dc3545; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* 快速操作按钮 */
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        
+        .quick-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .quick-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .quick-btn.primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .quick-btn.success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .quick-btn.warning {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .quick-btn.secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .quick-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* 聊天区域 */
+        .chat-messages {
+            height: 300px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .message {
+            margin-bottom: 12px;
+            max-width: 80%;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .message.user {
+            margin-left: auto;
+        }
+        
+        .message-content {
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .message.agent .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e9ecef;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .message.working .message-content {
+            background: #fff3cd;
+            color: #856404;
+            font-style: italic;
+        }
+        
+        .message.error .message-content {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .message-meta {
+            font-size: 11px;
+            color: #999;
+            margin-top: 4px;
+            padding: 0 4px;
+        }
+        
+        .message.user .message-meta {
+            text-align: right;
+        }
+        
+        /* 输入区域 */
+        .input-area {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .input-area input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        
+        .input-area input:focus {
+            border-color: #667eea;
+        }
+        
+        .input-area button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .input-area button:hover:not(:disabled) {
+            transform: scale(1.02);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .input-area button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* A2UI 渲染区域 */
+        .a2ui-container {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 16px;
+            min-height: 100px;
+            background: #fafafa;
+        }
+        
+        .a2ui-container.empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 餐厅卡片 */
+        .restaurant-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            gap: 16px;
+        }
+        
+        .restaurant-card img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            background: #e9ecef;
+        }
+        
+        .restaurant-info {
+            flex: 1;
+        }
+        
+        .restaurant-name {
+            font-weight: 600;
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        
+        .restaurant-cuisine {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        
+        .restaurant-rating {
+            color: #ffc107;
+            font-size: 14px;
+        }
+        
+        .restaurant-actions {
+            display: flex;
+            align-items: center;
+        }
+        
+        .restaurant-actions button {
+            padding: 8px 16px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        
+        /* 日志面板 */
+        .log-container {
+            height: 200px;
+            overflow-y: auto;
+            background: #1e1e1e;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        
+        .log-entry {
+            margin-bottom: 4px;
+        }
+        
+        .log-entry.info { color: #4fc3f7; }
+        .log-entry.success { color: #81c784; }
+        .log-entry.warning { color: #ffb74d; }
+        .log-entry.error { color: #e57373; }
+        .log-entry.debug { color: #9e9e9e; }
+        
+        .log-time {
+            color: #666;
+            margin-right: 8px;
+        }
+        
+        /* DevTools 提示 */
+        .devtools-hint {
+            background: linear-gradient(135deg, #667eea20, #764ba220);
+            border: 1px solid #667eea40;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 13px;
+            color: #333;
+        }
+        
+        .devtools-hint code {
+            background: #667eea20;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0;
+            }
+            
+            .panel {
+                border-radius: 0;
+            }
+            
+            .quick-actions {
+                overflow-x: auto;
+                flex-wrap: nowrap;
+                padding-bottom: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Agent WebView 浏览器测试</h1>
+            <p>使用 Mock LLM 在浏览器中测试 A2A Agent，无需 API Key</p>
+        </div>
+        
+        <!-- 控制面板 -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>⚙️ 控制面板</h2>
+                <div id="status" class="status-indicator pending">
+                    <span class="status-dot"></span>
+                    <span class="status-text">等待初始化</span>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="quick-actions">
+                    <button id="initMockBtn" class="quick-btn primary" onclick="initMock()">
+                        🎭 Mock 模式初始化
+                    </button>
+                    <button id="initRealBtn" class="quick-btn secondary" onclick="initReal()">
+                        🔑 真实 API 初始化
+                    </button>
+                    <button class="quick-btn warning" onclick="sendPreset('find')">
+                        🔍 搜索餐厅
+                    </button>
+                    <button class="quick-btn success" onclick="sendPreset('book')">
+                        📝 预订测试
+                    </button>
+                    <button class="quick-btn secondary" onclick="clearChat()">
+                        🗑️ 清空对话
+                    </button>
+                </div>
+                
+                <div class="devtools-hint">
+                    💡 <strong>DevTools 测试:</strong> 按 F12 打开开发者工具，在 Console 中输入 <code>DevTools.help()</code> 查看所有测试命令
+                </div>
+            </div>
+        </div>
+        
+        <!-- 聊天面板 -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>💬 对话</h2>
+            </div>
+            <div class="panel-body">
+                <div id="messages" class="chat-messages">
+                    <div class="message agent">
+                        <div class="message-content">
+                            你好！我是餐厅助手 Agent。点击上方的"Mock 模式初始化"开始测试，或者在下方输入你想找的餐厅类型。
+                        </div>
+                        <div class="message-meta">系统消息</div>
+                    </div>
+                </div>
+                
+                <div class="input-area">
+                    <input type="text" id="input" placeholder="输入消息，例如：帮我找中餐厅" disabled>
+                    <button id="sendBtn" onclick="sendMessage()" disabled>发送</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- A2UI 渲染面板 -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>🎨 A2UI 渲染</h2>
+            </div>
+            <div class="panel-body">
+                <div id="a2ui" class="a2ui-container empty">
+                    等待 A2UI 内容...
+                </div>
+            </div>
+        </div>
+        
+        <!-- 日志面板 -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>📋 事件日志</h2>
+                <button class="quick-btn secondary" onclick="clearLogs()" style="font-size: 12px; padding: 4px 12px;">清空</button>
+            </div>
+            <div class="panel-body">
+                <div id="logs" class="log-container">
+                    <div class="log-entry info"><span class="log-time">[--:--:--]</span> 页面已加载，等待初始化...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 加载打包后的 Agent -->
+    <script src="./dist/agent-webview.js"></script>
+    
+    <script>
+        // UI 元素
+        const statusEl = document.getElementById('status');
+        const messagesEl = document.getElementById('messages');
+        const inputEl = document.getElementById('input');
+        const sendBtnEl = document.getElementById('sendBtn');
+        const logsEl = document.getElementById('logs');
+        const a2uiEl = document.getElementById('a2ui');
+        
+        let isInitialized = false;
+        
+        // 日志函数
+        function log(message, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
+            logsEl.appendChild(entry);
+            logsEl.scrollTop = logsEl.scrollHeight;
+            
+            // 同时输出到控制台
+            console[type === 'error' ? 'error' : type === 'warning' ? 'warn' : 'log'](`[Demo] ${message}`);
+        }
+        
+        // 更新状态
+        function updateStatus(status, text) {
+            statusEl.className = `status-indicator ${status}`;
+            statusEl.querySelector('.status-text').textContent = text;
+        }
+        
+        // 添加消息
+        function addMessage(content, type = 'agent', meta = '') {
+            const div = document.createElement('div');
+            div.className = `message ${type}`;
+            
+            let displayContent = content;
+            if (typeof content === 'object') {
+                displayContent = JSON.stringify(content, null, 2);
+            }
+            
+            div.innerHTML = `
+                <div class="message-content">${displayContent}</div>
+                ${meta ? `<div class="message-meta">${meta}</div>` : ''}
+            `;
+            
+            messagesEl.appendChild(div);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+        
+        // Mock 模式初始化
+        async function initMock() {
+            log('开始 Mock 模式初始化...', 'info');
+            updateStatus('pending', '初始化中...');
+            
+            try {
+                // 设置 Mock Agent
+                if (window.AgentWebView) {
+                    const result = await window.AgentWebView.initialize({
+                        baseUrl: '',
+                        MOCK_MODE: true
+                    });
+                    
+                    if (result.success) {
+                        isInitialized = true;
+                        updateStatus('mock', 'Mock 模式');
+                        inputEl.disabled = false;
+                        sendBtnEl.disabled = false;
+                        log(`初始化成功! Session: ${result.sessionId}`, 'success');
+                        addMessage('🎭 Mock 模式已启动！你可以开始测试了。试着问我"帮我找中餐厅"吧！', 'agent', '系统');
+                        
+                        // 设置事件监听
+                        setupEventListeners();
+                    } else {
+                        throw new Error(result.error || '初始化失败');
+                    }
+                }
+            } catch (error) {
+                updateStatus('error', '初始化失败');
+                log(`初始化失败: ${error.message}`, 'error');
+                addMessage(`❌ 初始化失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 真实 API 初始化
+        async function initReal() {
+            const apiKey = prompt('请输入 API Key (支持 OpenAI/Gemini/DashScope):');
+            if (!apiKey) {
+                log('用户取消了 API Key 输入', 'warning');
+                return;
+            }
+            
+            const baseUrl = prompt('请输入 API Base URL (留空使用默认):', 'https://api.openai.com/v1');
+            const model = prompt('请输入模型名称:', 'gpt-4');
+            
+            log('开始真实 API 初始化...', 'info');
+            updateStatus('pending', '初始化中...');
+            
+            try {
+                const result = await window.AgentWebView.initialize({
+                    baseUrl: window.location.origin,
+                    OPENAI_API_KEY: apiKey,
+                    OPENAI_BASE_URL: baseUrl || 'https://api.openai.com/v1',
+                    OPENAI_MODEL: model || 'gpt-4'
+                });
+                
+                if (result.success) {
+                    isInitialized = true;
+                    updateStatus('ready', '已连接');
+                    inputEl.disabled = false;
+                    sendBtnEl.disabled = false;
+                    log(`真实 API 初始化成功! Session: ${result.sessionId}`, 'success');
+                    addMessage('🔑 已连接到真实 API，你可以开始对话了。', 'agent', '系统');
+                    
+                    setupEventListeners();
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                updateStatus('error', '连接失败');
+                log(`初始化失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 设置事件监听
+        function setupEventListeners() {
+            if (!window.AgentWebView) return;
+            
+            // 监听 Agent 事件
+            window.AgentWebView.on('agent-event', (event) => {
+                log(`收到 Agent 事件: ${event.kind || event.type}`, 'info');
+                
+                // 处理状态更新
+                if (event.kind === 'status-update') {
+                    const status = event.status;
+                    const state = status?.state;
+                    
+                    if (state === 'working') {
+                        // 显示工作中状态
+                        let workingEl = messagesEl.querySelector('.message.working');
+                        if (!workingEl) {
+                            workingEl = document.createElement('div');
+                            workingEl.className = 'message working';
+                            workingEl.innerHTML = '<div class="message-content"></div>';
+                            messagesEl.appendChild(workingEl);
+                        }
+                        
+                        const msg = status.message?.parts?.[0]?.text || '处理中...';
+                        workingEl.querySelector('.message-content').textContent = `⏳ ${msg}`;
+                        messagesEl.scrollTop = messagesEl.scrollHeight;
+                    } else if (state === 'completed' || state === 'input_required') {
+                        // 移除工作中状态
+                        const workingEl = messagesEl.querySelector('.message.working');
+                        if (workingEl) workingEl.remove();
+                        
+                        // 显示最终消息
+                        const parts = status.message?.parts || [];
+                        parts.forEach(part => {
+                            if (part.kind === 'text') {
+                                addMessage(part.text, 'agent', new Date().toLocaleTimeString());
+                            } else if (part.kind === 'data') {
+                                // 渲染 A2UI
+                                renderA2UI(part.data);
+                            }
+                        });
+                    } else if (state === 'failed') {
+                        const workingEl = messagesEl.querySelector('.message.working');
+                        if (workingEl) workingEl.remove();
+                        
+                        const errorMsg = status.message?.parts?.[0]?.text || '发生错误';
+                        addMessage(`❌ ${errorMsg}`, 'error');
+                    }
+                }
+            });
+        }
+        
+        // 渲染 A2UI
+        function renderA2UI(data) {
+            if (!data) return;
+            
+            a2uiEl.classList.remove('empty');
+            
+            log(`渲染 A2UI: ${data.type}`, 'debug');
+            
+            // 简单的 A2UI 渲染器
+            if (data.type === 'vertical_list') {
+                let html = `<h3 style="margin-bottom: 12px;">${data.title || '结果'}</h3>`;
+                
+                (data.items || []).forEach(item => {
+                    if (item.type === 'restaurant_card') {
+                        html += `
+                            <div class="restaurant-card">
+                                <img src="${item.imageUrl || ''}" alt="${item.name}" onerror="this.style.display='none'">
+                                <div class="restaurant-info">
+                                    <div class="restaurant-name">${item.name}</div>
+                                    <div class="restaurant-cuisine">${item.cuisine} • ${item.priceRange}</div>
+                                    <div class="restaurant-rating">⭐ ${item.rating}</div>
+                                </div>
+                                <div class="restaurant-actions">
+                                    <button onclick="bookRestaurant('${item.name}', '${item.address}')">预订</button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+                
+                a2uiEl.innerHTML = html;
+            } else if (data.type === 'form') {
+                let html = `<h3 style="margin-bottom: 12px;">${data.title || '表单'}</h3>`;
+                html += '<form id="bookingForm" style="display: flex; flex-direction: column; gap: 12px;">';
+                
+                (data.fields || []).forEach(field => {
+                    html += `
+                        <div>
+                            <label style="display: block; margin-bottom: 4px; font-weight: 500;">${field.label}</label>
+                            <input type="${field.type === 'number' ? 'number' : 'text'}" 
+                                   name="${field.name}" 
+                                   placeholder="${field.placeholder || ''}"
+                                   value="${field.defaultValue || ''}"
+                                   style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px;">
+                        </div>
+                    `;
+                });
+                
+                const ctx = data.submitAction?.context || {};
+                html += `
+                    <button type="button" onclick="submitBookingForm('${ctx.restaurantName || ''}')"
+                            style="padding: 12px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                        ${data.submitAction?.label || '提交'}
+                    </button>
+                </form>`;
+                
+                a2uiEl.innerHTML = html;
+            } else if (data.type === 'confirmation') {
+                let html = `
+                    <div style="text-align: center; padding: 20px;">
+                        <div style="font-size: 48px; margin-bottom: 12px;">✅</div>
+                        <h3 style="color: #28a745; margin-bottom: 8px;">${data.title}</h3>
+                        <p style="color: #666; margin-bottom: 16px;">${data.message}</p>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; text-align: left;">
+                `;
+                
+                (data.details || []).forEach(d => {
+                    html += `<div style="margin-bottom: 4px;"><strong>${d.label}:</strong> ${d.value}</div>`;
+                });
+                
+                html += `
+                            <div style="margin-top: 8px; color: #007bff;"><strong>确认号:</strong> ${data.confirmationNumber}</div>
+                        </div>
+                    </div>
+                `;
+                
+                a2uiEl.innerHTML = html;
+            } else {
+                // 默认显示 JSON
+                a2uiEl.innerHTML = `<pre style="font-size: 12px; overflow: auto;">${JSON.stringify(data, null, 2)}</pre>`;
+            }
+        }
+        
+        // 发送消息
+        async function sendMessage() {
+            const text = inputEl.value.trim();
+            if (!text || !isInitialized) return;
+            
+            inputEl.value = '';
+            addMessage(text, 'user', new Date().toLocaleTimeString());
+            log(`发送消息: ${text}`, 'info');
+            
+            try {
+                await window.AgentWebView.sendTextMessage(text, true);
+            } catch (error) {
+                log(`发送失败: ${error.message}`, 'error');
+                addMessage(`❌ 发送失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 预设消息
+        function sendPreset(type) {
+            if (!isInitialized) {
+                log('请先初始化 Agent', 'warning');
+                return;
+            }
+            
+            const presets = {
+                find: '帮我找一些中餐厅',
+                book: '我想预订 Golden Dragon Chinese Restaurant'
+            };
+            
+            inputEl.value = presets[type] || '';
+            sendMessage();
+        }
+        
+        // 预订餐厅
+        async function bookRestaurant(name, address) {
+            if (!isInitialized) return;
+            
+            log(`点击预订: ${name}`, 'info');
+            
+            await window.AgentWebView.sendUIEvent('book_restaurant', {
+                restaurantName: name,
+                address: address,
+                imageUrl: ''
+            });
+        }
+        
+        // 提交预订表单
+        async function submitBookingForm(restaurantName) {
+            if (!isInitialized) return;
+            
+            const form = document.getElementById('bookingForm');
+            const formData = new FormData(form);
+            
+            const details = {
+                restaurantName,
+                partySize: formData.get('partySize') || '2',
+                reservationTime: formData.get('reservationTime') || '7:00 PM',
+                dietary: formData.get('dietary') || 'None'
+            };
+            
+            log(`提交预订: ${JSON.stringify(details)}`, 'info');
+            
+            await window.AgentWebView.sendUIEvent('submit_booking', details);
+        }
+        
+        // 清空对话
+        function clearChat() {
+            messagesEl.innerHTML = '';
+            a2uiEl.innerHTML = '';
+            a2uiEl.classList.add('empty');
+            a2uiEl.textContent = '等待 A2UI 内容...';
+            addMessage('对话已清空。', 'agent', '系统');
+        }
+        
+        // 清空日志
+        function clearLogs() {
+            logsEl.innerHTML = '';
+            log('日志已清空', 'info');
+        }
+        
+        // 回车发送
+        inputEl.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+        
+        // 页面加载完成
+        log('页面已加载，点击"Mock 模式初始化"开始测试', 'success');
+    </script>
+</body>
+</html>
