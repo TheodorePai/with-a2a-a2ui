@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>A2UI 动态渲染</title>
+    <style>
+        embed {
+          display: block;
+          margin: 8px auto;
+        }
+    </style>
+</head>
+<body>
+<!-- ① 占位框：类型必须是 native/a2ui，id 与 ArkTS 对应 -->
+<embed type="native/a2ui" id="a2uiCard" width="320" height="160" />
+
+<script>
+    // ② 模拟 AI 代理下发新 DSL（真实场景里通过 postMessage / fetch）
+    setTimeout(() => {
+      const dsl = {
+        type: 'card',
+        title: '已动态刷新',
+        desc: '这条数据由 AI 代理下发',
+        bgColor: '#FFF4E6'
+      };
+      // 把 DSL 塞进 embed 的 data-* 属性，ArkTS 侧可以读到
+      const embed = document.getElementById('a2uiCard');
+      embed.setAttribute('data-dsl', JSON.stringify(dsl));
+      // 主动触发自定义事件，通知 ArkTS 侧 update
+      window.dispatchEvent(new CustomEvent('a2ui-update', { detail: { id: 'a2uiCard', dsl } }));
+    }, 3000);
+</script>
+</body>
+</html>
