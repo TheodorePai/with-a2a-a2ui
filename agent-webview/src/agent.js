@@ -7,6 +7,7 @@ import Ajv from 'ajv';
 import { OpenAIAdapter } from './openai-adapter.js';
 import { toolDefinitions, executeTool } from './tools.js';
 import { configManager } from './config.js';
+import { get_ui_prompt, get_text_prompt, A2UI_SCHEMA, RESTAURANT_UI_EXAMPLES } from './prompt_builder.js';
 
 const ajv = new Ajv();
 
@@ -30,17 +31,6 @@ const AGENT_INSTRUCTION = `
         a. You MUST use the confirmation UI example.
 `;
 
-// A2UI Schema（简化版）
-const A2UI_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "beginRendering": { "type": "object" },
-        "surfaceUpdate": { "type": "object" },
-        "dataModelUpdate": { "type": "object" },
-        "deleteSurface": { "type": "object" }
-    }
-};
-
 export class RestaurantAgent {
     /**
      * @param {string} baseUrl - 基础 URL
@@ -50,36 +40,17 @@ export class RestaurantAgent {
         this.baseUrl = baseUrl;
         this.useUI = useUI;
         this.openai = new OpenAIAdapter();
-        this.a2uiSchemaObject = { type: "array", items: A2UI_SCHEMA };
+        this.a2uiSchemaObject = this._initSchema();
     }
 
-    /**
-     * 获取 UI 提示词
-     */
-    _getUIPrompt() {
-        // 这里应该导入完整的 prompt_builder 内容
-        // 为了简化，返回基本提示
-        return `
-When generating UI responses, you MUST output in this format:
-1. First, provide a brief text description
-2. Then add the delimiter: ---a2ui_JSON---
-3. Then output the A2UI JSON array
-
-The A2UI JSON should be a valid array of message objects following the A2UI schema.
-Base URL for images: ${this.baseUrl}
-`;
-    }
-
-    /**
-     * 获取纯文本提示词
-     */
-    _getTextPrompt() {
-        return `
-You are a restaurant finding assistant. When users ask about restaurants:
-1. Use the get_restaurants tool to find restaurants
-2. Present the results in a clear, readable text format
-3. Include name, rating, description, and address for each restaurant
-`;
+    _initSchema() {
+        try {
+            const singleMessageSchema = JSON.parse(A2UI_SCHEMA);
+            return { type: "array", items: singleMessageSchema };
+        } catch (e) {
+            logger.error(`CRITICAL: Failed to parse A2UI_SCHEMA: ${e.message}`);
+            return null;
+        }
     }
 
     /**
@@ -106,8 +77,8 @@ You are a restaurant finding assistant. When users ask about restaurants:
         // 获取或创建会话
         if (!sessionStore.has(sessionId)) {
             const systemContent = this.useUI
-                ? AGENT_INSTRUCTION + this._getUIPrompt()
-                : AGENT_INSTRUCTION + this._getTextPrompt();
+                ? AGENT_INSTRUCTION + get_ui_prompt()
+                : AGENT_INSTRUCTION + get_text_prompt();
 
             sessionStore.set(sessionId, {
                 messages: [{ role: "system", content: systemContent }],
