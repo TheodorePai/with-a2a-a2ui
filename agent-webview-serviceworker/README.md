@@ -1,19 +1,30 @@
 # Agent WebView ServiceWorker
 
-这个项目将 agent-webview（后端）和前端 App 整合在一起，通过 ServiceWorker 实现通信。
+这个项目将 agent-webview（后端）和前端 App 整合在一起，通过 ServiceWorker 实现通信。前端基于 Lit 框架和 @a2ui/lit 组件库实现。
 
 ## 项目结构
 
 ```
 agent-webview-serviceworker/
-├── index.html          # 前端入口页面
-├── styles.css          # 样式文件
-├── sw.js              # ServiceWorker（拦截请求）
-├── package.json       # 项目配置
-├── rollup.config.js   # 构建配置
+├── index.html              # 前端入口页面
+├── sw.js                   # ServiceWorker（拦截请求）
+├── package.json            # 项目配置
+├── tsconfig.json           # TypeScript 配置
+├── vite.config.ts          # Vite 前端构建配置
+├── rollup.config.js        # Agent 构建配置
+├── rollup.sw.config.js     # ServiceWorker Agent 构建配置
 ├── src/
-│   ├── app.js         # 前端应用代码
-│   └── agent-webview/ # Agent 核心代码
+│   ├── app.ts              # 前端应用主组件 (Lit)
+│   ├── client.ts           # A2UI 客户端和 ServiceWorker 控制器
+│   ├── vite-env.d.ts       # Vite 类型声明
+│   ├── configs/            # 应用配置
+│   │   ├── index.ts        # 配置导出
+│   │   ├── types.ts        # 配置类型定义
+│   │   └── restaurant.ts   # 餐厅应用配置
+│   ├── theme/              # 主题配置
+│   │   ├── index.ts        # 主题导出
+│   │   └── default-theme.ts # 默认主题定义
+│   └── agent-webview/      # Agent 核心代码
 │       ├── index.js
 │       ├── agent.js
 │       ├── agent-executor.js
@@ -32,8 +43,8 @@ agent-webview-serviceworker/
 │           ├── execution-event-bus.js
 │           ├── request-context.js
 │           └── native-transport.js
-├── static/            # 静态资源（餐厅图片）
-└── dist/              # 编译输出目录
+├── static/                 # 静态资源（餐厅图片）
+└── dist/                   # 编译输出目录
 ```
 
 ## 工作原理
@@ -102,20 +113,26 @@ npm install
 ### 2. 构建项目
 
 ```bash
+# 构建 ServiceWorker Agent
+npm run build:sw
+
+# 构建前端应用
 npm run build
+
+# 构建所有
+npm run build:all
 ```
 
-### 3. 启动服务
+### 3. 启动开发服务器
 
 ```bash
-npm run serve
-# 或
-npx serve .
+# 开发模式（Vite）
+npm run dev
 ```
 
 ### 4. 打开浏览器
 
-访问 http://localhost:3000（或 serve 显示的端口）
+访问 http://localhost:3000
 
 ### 5. 配置 API Key
 
@@ -127,11 +144,11 @@ npx serve .
 ## 开发模式
 
 ```bash
-# 监听文件变化，自动重新构建
+# 启动 Vite 开发服务器（支持热重载）
 npm run dev
 
-# 另开一个终端，启动服务
-npm run serve
+# 如果修改了 Agent 代码，需要重新构建 ServiceWorker
+npm run build:sw
 ```
 
 ## 支持的 API 提供商
@@ -145,16 +162,21 @@ npm run serve
 
 - ✅ ServiceWorker 请求拦截
 - ✅ A2A 协议支持
-- ✅ A2UI 富文本界面渲染
+- ✅ A2UI 富文本界面渲染（基于 @a2ui/lit）
 - ✅ 流式响应 (SSE)
 - ✅ 会话管理
 - ✅ 配置持久化
+- ✅ 主题系统支持
+- ✅ 表单自动渲染
 - ✅ 离线模式准备
 
 ## 技术栈
 
-- **前端**: 原生 JavaScript (ES Module)
-- **构建**: Rollup
+- **前端框架**: Lit (Web Components)
+- **UI 组件**: @a2ui/lit (A2UI 官方 Lit 组件库)
+- **状态管理**: @lit-labs/signals (响应式信号)
+- **构建工具**: Vite (前端) + Rollup (ServiceWorker)
+- **语言**: TypeScript
 - **通信**: ServiceWorker + Fetch API
 - **协议**: A2A (Agent-to-Agent), A2UI (Agent-to-UI)
 - **AI**: OpenAI API 兼容接口

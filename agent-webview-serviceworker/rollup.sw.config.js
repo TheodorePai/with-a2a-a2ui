@@ -1,3 +1,8 @@
+/**
+ * Rollup 配置 - 仅用于构建 ServiceWorker 所需的 agent-webview 代码
+ * 前端应用使用 Vite 构建
+ */
+
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import json from '@rollup/plugin-json';
@@ -21,17 +26,6 @@ const isDev = process.env.NODE_ENV !== 'production';
 const finalPlugins = isDev ? plugins : productionPlugins;
 
 export default [
-    // 前端 App - ESM 格式
-    {
-        input: 'src/app.js',
-        output: {
-            file: 'dist/app.js',
-            format: 'es',
-            sourcemap: true
-        },
-        plugins: finalPlugins
-    },
-    
     // Agent WebView for ServiceWorker - IIFE 格式（ServiceWorker 不支持 ES Module）
     {
         input: 'src/agent-webview/index.js',

@@ -4,20 +4,27 @@
   "description": "Agent WebView with ServiceWorker integration - Restaurant Agent demo",
   "type": "module",
   "scripts": {
-    "build": "rollup -c",
-    "build:watch": "rollup -c -w",
-    "serve": "npx serve .",
-    "start": "npm run build && npm run serve",
-    "dev": "npm run build:watch"
+    "build": "vite build",
+    "build:sw": "rollup -c rollup.sw.config.js",
+    "build:all": "npm run build && npm run build:sw",
+    "serve": "vite preview",
+    "dev": "vite",
+    "start": "npm run build:all && npm run serve"
   },
   "dependencies": {
-    "ajv": "^8.17.1"
+    "@a2ui/lit": "file:../renderers/lit",
+    "@lit-labs/signals": "^0.2.0",
+    "@lit/context": "^1.1.3",
+    "ajv": "^8.17.1",
+    "lit": "^3.2.1"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.0",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^15.3.0",
     "@rollup/plugin-terser": "^0.4.4",
-    "rollup": "^4.28.0"
+    "rollup": "^4.28.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.0.0"
   }
 }
