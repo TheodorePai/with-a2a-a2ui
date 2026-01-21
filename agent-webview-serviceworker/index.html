@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Agent - ServiceWorker Demo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 头部 -->
+        <header class="app-header">
+            <h1>🍽️ Restaurant Agent</h1>
+            <div class="header-controls">
+                <label class="ui-toggle-label">
+                    <input type="checkbox" id="ui-toggle" checked>
+                    <span>A2UI 模式</span>
+                </label>
+                <button id="settings-btn" class="icon-button" title="设置">⚙️</button>
+            </div>
+        </header>
+
+        <!-- 状态栏 -->
+        <div class="status-bar">
+            <span id="status-indicator" class="status-indicator status-loading">正在初始化...</span>
+        </div>
+
+        <!-- 配置面板 -->
+        <div id="config-panel" class="config-panel" style="display: none;">
+            <div class="config-content">
+                <h2>配置 OpenAI API</h2>
+                <p class="config-description">
+                    请输入您的 OpenAI API 配置信息。您的配置将保存在本地浏览器中。
+                </p>
+                
+                <div class="form-group">
+                    <label for="api-key-input">API Key</label>
+                    <input type="password" id="api-key-input" placeholder="sk-..." autocomplete="off">
+                </div>
+                
+                <div class="form-group">
+                    <label for="base-url-input">Base URL</label>
+                    <input type="text" id="base-url-input" placeholder="https://api.openai.com/v1" value="https://api.openai.com/v1">
+                    <small>支持 OpenAI、OpenRouter、通义千问等兼容 API</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="model-input">Model</label>
+                    <input type="text" id="model-input" placeholder="gpt-4" value="gpt-4">
+                </div>
+                
+                <div class="form-actions">
+                    <button id="save-config" class="primary-button">保存并启动</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 聊天区域 -->
+        <main class="chat-main">
+            <div id="chat-container" class="chat-container">
+                <!-- 欢迎消息 -->
+                <div class="message message-system">
+                    <p>👋 欢迎使用 Restaurant Agent！</p>
+                    <p>我可以帮助您查找和预订餐厅。试试说：</p>
+                    <ul>
+                        <li>"帮我找纽约的中餐厅"</li>
+                        <li>"Find me top 5 chinese restaurants in New York"</li>
+                        <li>"推荐一些评分高的餐厅"</li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+
+        <!-- 输入区域 -->
+        <footer class="chat-footer">
+            <div class="input-container">
+                <input 
+                    type="text" 
+                    id="message-input" 
+                    class="message-input" 
+                    placeholder="输入消息..." 
+                    disabled
+                >
+                <button id="send-button" class="send-button" disabled>
+                    发送
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- 加载前端应用 -->
+    <script type="module" src="dist/app.js"></script>
+</body>
+</html>
