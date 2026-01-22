@@ -7,7 +7,8 @@ import Ajv from 'ajv';
 import { OpenAIAdapter } from './openai-adapter.js';
 import { toolDefinitions, executeTool } from './tools.js';
 import { configManager } from './config.js';
-import { get_ui_prompt, get_text_prompt, A2UI_SCHEMA, RESTAURANT_UI_EXAMPLES } from './prompt_builder.js';
+import { get_ui_prompt, get_text_prompt, A2UI_SCHEMA } from './prompt_builder.js';
+import { RESTAURANT_UI_EXAMPLES } from './a2ui_examples.js';
 
 const ajv = new Ajv();
 
@@ -77,8 +78,8 @@ export class RestaurantAgent {
         // 获取或创建会话
         if (!sessionStore.has(sessionId)) {
             const systemContent = this.useUI
-                ? AGENT_INSTRUCTION + get_ui_prompt()
-                : AGENT_INSTRUCTION + get_text_prompt();
+                ? AGENT_INSTRUCTION + get_ui_prompt(this.baseUrl, RESTAURANT_UI_EXAMPLES)
+                : get_text_prompt();
 
             sessionStore.set(sessionId, {
                 messages: [{ role: "system", content: systemContent }],

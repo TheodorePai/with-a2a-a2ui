@@ -16,7 +16,7 @@ const AGENT_INSTRUCTION = `
 
     1.  **For finding restaurants:**
         a. You MUST call the 'get_restaurants' tool. Extract the cuisine, location, and a specific number ('count') of restaurants from the user's query.
-        b. After receiving the data, you MUST follow the instructions precisely to generate the final a2ui UI JSON, using the appropriate UI example from the 'prompt_builder.js'.
+        b. After receiving the data, you MUST follow the instructions precisely to generate the final a2ui UI JSON, using the appropriate UI example from the prompt.
 
     2.  **For booking a table:**
         a. You MUST use the appropriate UI example to generate the booking UI.
@@ -171,7 +171,6 @@ class RestaurantAgent {
                         if (attempt <= maxRetries) {
                             // 构造纠错 Prompt 发起重试
                             const retryPrompt = `Your previous response was invalid. ${validation.error} ` +
-                                `You MUST generate a valid response that strictly follows the A2UI JSON SCHEMA... ` +
                                 `Please retry the original request: '${query}'`;
                             currentMessages.push({ role: "user", content: retryPrompt });
                             continue;

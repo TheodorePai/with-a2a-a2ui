@@ -42,12 +42,12 @@ class AgentWebViewInstance {
     async initialize(config) {
         try {
             console.info('[AgentWebView] Initializing...');
-            
+
             // 设置配置
             configManager.setConfig(config);
-            
+
             const baseUrl = config.baseUrl || config.BASE_URL || '';
-            
+
             // 动态导入 AgentExecutor（避免循环依赖）
             if (!RestaurantAgentExecutor) {
                 const module = await import('./agent-executor.js');
@@ -56,24 +56,24 @@ class AgentWebViewInstance {
 
             // 构建 Agent Card
             this.agentCard = this._buildAgentCard(baseUrl);
-            
+
             // 创建 A2A 组件
             const taskStore = new InMemoryTaskStore();
             const agentExecutor = new RestaurantAgentExecutor(baseUrl);
-            
+
             // 创建请求处理器
             this.requestHandler = new BrowserRequestHandler(
                 this.agentCard,
                 taskStore,
                 agentExecutor
             );
-            
+
             // 启动 Agent（会自动通知 Native）
             this.requestHandler.start();
-            
+
             this.isInitialized = true;
             console.info('[AgentWebView] Initialized successfully');
-            
+
             return { success: true, sessionId: this.sessionId, agentCard: this.agentCard };
         } catch (error) {
             console.error('[AgentWebView] Initialization failed:', error);
@@ -87,30 +87,43 @@ class AgentWebViewInstance {
      */
     _buildAgentCard(baseUrl) {
         return {
-            name: 'Restaurant Agent',
-            description: 'This agent helps find restaurants based on user criteria.',
-            url: baseUrl,
-            version: '1.0.0',
-            defaultInputModes: ['text/plain', 'application/json'],
-            defaultOutputModes: ['text/plain', 'application/json'],
-            capabilities: {
-                streaming: true,
-                extensions: [
+            "capabilities": {
+                "extensions": [
                     {
-                        uri: A2UI_EXTENSION_URL,
-                        description: 'Provides agent driven UI using the A2UI JSON format.'
+                        "description": "Provides agent driven UI using the A2UI JSON format.",
+                        "uri": "https://a2ui.org/a2a-extension/a2ui/v0.8"
                     }
-                ]
+                ],
+                "streaming": true
             },
-            skills: [
+            "defaultInputModes": [
+                "text",
+                "text/plain"
+            ],
+            "defaultOutputModes": [
+                "text",
+                "text/plain"
+            ],
+            "description": "This agent helps find restaurants based on user criteria.",
+            "name": "Restaurant Agent",
+            "preferredTransport": "JSONRPC",
+            "protocolVersion": "0.3.0",
+            "skills": [
                 {
-                    id: 'find_restaurants',
-                    name: 'Find Restaurants Tool',
-                    description: 'Helps find restaurants based on user criteria (e.g., cuisine, location).',
-                    tags: ['restaurant', 'finder'],
-                    examples: ['Find me the top 10 chinese restaurants in the US']
+                    "description": "Helps find restaurants based on user criteria (e.g., cuisine, location).",
+                    "examples": [
+                        "Find me the top 10 chinese restaurants in the US"
+                    ],
+                    "id": "find_restaurants",
+                    "name": "Find Restaurants Tool",
+                    "tags": [
+                        "restaurant",
+                        "finder"
+                    ]
                 }
-            ]
+            ],
+            "url": baseUrl,
+            "version": "1.0.0"
         };
     }
 
@@ -130,12 +143,12 @@ class AgentWebViewInstance {
             role: 'user',
             parts: [{ kind: 'text', text }]
         };
-        
+
         const context = {
             sessionId: this.sessionId,
             requestedExtensions: useUI ? [A2UI_EXTENSION_URL] : []
         };
-        
+
         // 直接触发用户消息事件（模拟 Native 调用）
         window.AgentBridge.sendUserMessage(message, context);
     }
@@ -163,7 +176,14 @@ class AgentWebViewInstance {
                 }
             }]
         };
-        
+
+        window.AgentBridge.sendUserMessage(message, {
+            sessionId: this.sessionId,
+            requestedExtensions: [A2UI_EXTENSION_URL]
+        });
+    }
+
+    async sendCommonEvent(message) {
         window.AgentBridge.sendUserMessage(message, {
             sessionId: this.sessionId,
             requestedExtensions: [A2UI_EXTENSION_URL]

@@ -199,6 +199,10 @@ class AgentMessageBus {
         this._postToNative('agent-event', event);
     }
 
+    emitFullResponse(event) {
+        this._postToNative('full-response', event);
+    }
+
     /**
      * 发送 Agent 错误到 Native
      * @param {Error} error - 错误对象
@@ -222,6 +226,7 @@ class AgentMessageBus {
      * - 'user-message': 用户消息
      */
     on(eventType, callback) {
+        console.log(`agentbus set on ${eventType}`);
         if (!this.eventCallbacks.has(eventType)) {
             this.eventCallbacks.set(eventType, []);
         }
