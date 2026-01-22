@@ -847,6 +847,66 @@ function get_text_prompt() {
     `;
 }
 
+/**
+ * Constructs the full prompt with UI instructions, rules, examples, and schema.
+ * Reimplemented to remove tool references that are present in the original prompt_builder.js.
+ * The original get_ui_prompt explicitly asks to use data from 'get_restaurants' tool,
+ * which conflicts with the data generation logic here.
+ */
+function get_ui_prompt_gen(base_url, examples) {
+    // Format the examples by replacing base_url
+    let formatted_examples = examples;
+    if (base_url) {
+        formatted_examples = examples.replace(/\{\{\s*base_url\s*\}\}/g, base_url);
+    }
+
+    return `
+    You are a helpful restaurant finding assistant. Your final output MUST be a a2ui UI JSON response.
+
+    To generate the response, you MUST follow these rules:
+    1.  Your response MUST be in two parts, separated by the delimiter: \`---a2ui_JSON---\`.
+    2.  The first part is your conversational text response.
+    3.  The second part is a single, raw JSON object which is a list of A2UI messages.
+    4.  The JSON part MUST validate against the A2UI JSON SCHEMA provided below.
+
+    --- UI TEMPLATE RULES ---
+    -   If the query is for a list of restaurants, use the restaurant data you have generated to populate the \`dataModelUpdate.contents\` array (e.g., as a \`valueMap\` for the "items" key).
+    -   If the number of restaurants is 5 or fewer, you MUST use the \`SINGLE_COLUMN_LIST_EXAMPLE\` template.
+    -   If the number of restaurants is more than 5, you MUST use the \`TWO_COLUMN_LIST_EXAMPLE\` template.
+    -   If the query is to book a restaurant (e.g., "USER_WANTS_TO_BOOK..."), you MUST use the \`BOOKING_FORM_EXAMPLE\` template.
+    -   If the query is a booking submission (e.g., "User submitted a booking..."), you MUST use the \`CONFIRMATION_EXAMPLE\` template.
+
+    ${formatted_examples}
+
+    ---BEGIN A2UI JSON SCHEMA---
+    ${A2UI_SCHEMA}
+    ---END A2UI JSON SCHEMA---
+    `;
+}
+
+/**
+ * Constructs the prompt for a text-only agent.
+ * Reimplemented to remove tool references.
+ * The original get_text_prompt requires calling 'get_restaurants' tool,
+ * which we are replacing with direct generation.
+ */
+function get_text_prompt_gen() {
+    return `
+    You are a helpful restaurant finding assistant. Your final output MUST be a text response.
+
+    To generate the response, you MUST follow these rules:
+    1.  **For finding restaurants:**
+        a. You MUST generate a list of restaurants based on the user's query.
+        b. Format the restaurant list as a clear, human-readable text response.
+
+    2.  **For booking a table (when you receive a query like 'USER_WANTS_TO_BOOK...'):**
+        a. Respond by asking the user for the necessary details to make a booking (party size, date, time, dietary requirements).
+
+    3.  **For confirming a booking (when you receive a query like 'User submitted a booking...'):**
+        a. Respond with a simple text confirmation of the booking details.
+    `;
+}
+
 // // module.exports = {
 // //     get_ui_prompt,
 // //     get_text_prompt,
@@ -857,6 +917,8 @@ function get_text_prompt() {
 export {
   get_ui_prompt,
   get_text_prompt,
+  get_ui_prompt_gen,
+  get_text_prompt_gen,
   A2UI_SCHEMA,
   RESTAURANT_UI_EXAMPLES
 };

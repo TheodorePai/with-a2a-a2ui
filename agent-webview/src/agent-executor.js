@@ -3,7 +3,7 @@
  * 从 agent-js/src/agent_executor.js 移植，适配浏览器环境
  */
 
-import { RestaurantAgent } from './agent.js';
+import { RestaurantAgent } from './agent-no-tools.js';
 import { tryActivateA2UIExtension, createA2UIPart } from './a2ui-extension.js';
 
 /**
