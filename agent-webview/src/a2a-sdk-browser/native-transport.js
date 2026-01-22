@@ -53,7 +53,8 @@ export class NativeTransport {
             task: context.task || null,
             context: {
                 requestedExtensions: context.requestedExtensions || []
-            }
+            },
+            rpcResponseId:context.rpcResponseId || 1
         };
     }
 

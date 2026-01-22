@@ -26,6 +26,7 @@ export class RestaurantAgentExecutor {
      * @param {Object} eventBus - 事件总线
      */
     async execute(requestContext, eventBus) {
+        console.log(`*********requestContext: ${JSON.stringify(requestContext)}`);
         let query = "";
         let uiEventPart = null;
         let action = null;
