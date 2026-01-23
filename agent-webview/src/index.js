@@ -184,10 +184,26 @@ class AgentWebViewInstance {
     }
 
     async sendCommonEvent(message) {
-        window.AgentBridge.sendUserMessage(message, {
-            sessionId: this.sessionId,
-            requestedExtensions: [A2UI_EXTENSION_URL]
-        });
+
+        let messageObj = message;
+        if (typeof message === 'string') {
+            try {
+                messageObj = JSON.parse(message);
+            } catch (e) {
+                console.error('Failed to parse message in sendCommonEvent:', e);
+                return;
+            }
+        }
+
+        if (messageObj && messageObj.params && messageObj.params.message) {
+            window.AgentBridge.sendUserMessage(messageObj.params.message, {
+                sessionId: this.sessionId,
+                requestedExtensions: [A2UI_EXTENSION_URL],
+                rpcResponseId: messageObj.id
+            });
+        } else {
+            console.error('Invalid message structure in sendCommonEvent:', messageObj);
+        }
     }
 
     /**

@@ -52,6 +52,7 @@ class AgentMessageBus {
              */
             sendUserMessage: (message, context = {}) => {
                 console.info('[AgentMessageBus] User message received from Native');
+                
                 this._emit('user-message', { message, context });
             }
         };

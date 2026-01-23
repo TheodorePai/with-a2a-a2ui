@@ -30,7 +30,7 @@ export class BrowserRequestHandler {
         
         // 注册任务处理
         nativeTransport.onTaskRequest(async (requestContext, eventBus) => {
-            console.info('[BrowserRequestHandler] Processing task:', requestContext.taskId);
+            console.info('[BrowserRequestHandler] Processing task id:', requestContext.taskId);
 
             // 1. 准备用于收集数据的变量
             // 如果 requestContext.task 存在则使用，否则初始化一个默认的 Task 对象
@@ -82,7 +82,7 @@ export class BrowserRequestHandler {
                     // C. 执行完成，组装最终的大 JSON
                     // 模拟 agent-js 的 JSON-RPC 响应格式
                     const fullResponse = {
-                        id: 1, // 这里可以使用 requestContext.taskId 或其他标识
+                        id: requestContext.rpcResponseId || 1,
                         jsonrpc: "2.0",
                         result: currentTask
                     };
