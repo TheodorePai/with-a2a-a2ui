@@ -1,0 +1,28 @@
+[Timing] User message parsing took 0.10ms
+agent-executor.js:111 [Timing] Start querying at 2026-01-26T06:20:50.479Z
+agent-no-tools.js:92 [Timing] System prompt construction took 0.00ms
+agent-no-tools.js:105 [Timing] Message preparation (user query) took 0.00ms
+agent-executor.js:119 [Timing] Item 1 received at 2026-01-26T06:20:50.479Z, duration from last: 0.60ms
+agent-no-tools.js:129 [Timing] Request body construction took 0.10ms
+agent-no-tools.js:134 [Timing] Send request and wait response took 24029.60ms
+agent-no-tools.js:144 [Timing] UI Verification took 42.00ms
+agent-executor.js:119 [Timing] Item 2 received at 2026-01-26T06:21:14.552Z, duration from last: 24072.20ms
+agent-executor.js:207 [Timing] Execution completed. Total time: 24073.20ms. Total items: 2
+agent-executor.js:89 [Timing] User message parsing took 0.20ms
+agent-executor.js:111 [Timing] Start querying at 2026-01-26T06:21:31.154Z
+agent-no-tools.js:105 [Timing] Message preparation (user query) took 0.00ms
+agent-executor.js:119 [Timing] Item 1 received at 2026-01-26T06:21:31.155Z, duration from last: 0.40ms
+agent-no-tools.js:129 [Timing] Request body construction took 0.10ms
+agent-no-tools.js:134 [Timing] Send request and wait response took 19226.60ms
+agent-no-tools.js:144 [Timing] UI Verification took 0.10ms
+agent-executor.js:119 [Timing] Item 2 received at 2026-01-26T06:21:50.382Z, duration from last: 19227.30ms
+agent-executor.js:207 [Timing] Execution completed. Total time: 19227.90ms. Total items: 2
+agent-executor.js:89 [Timing] User message parsing took 0.30ms
+agent-executor.js:111 [Timing] Start querying at 2026-01-26T06:22:09.212Z
+agent-no-tools.js:105 [Timing] Message preparation (user query) took 0.00ms
+agent-executor.js:119 [Timing] Item 1 received at 2026-01-26T06:22:09.212Z, duration from last: 0.40ms
+agent-no-tools.js:129 [Timing] Request body construction took 0.00ms
+agent-no-tools.js:134 [Timing] Send request and wait response took 9343.50ms
+agent-no-tools.js:144 [Timing] UI Verification took 0.10ms
+agent-executor.js:119 [Timing] Item 2 received at 2026-01-26T06:22:18.557Z, duration from last: 9344.10ms
+agent-executor.js:207 [Timing] Execution completed. Total time: 9345.00ms. Total items: 2

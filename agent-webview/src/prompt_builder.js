@@ -787,6 +787,19 @@ const A2UI_SCHEMA = JSON.stringify({
   }
 });
 
+const A2UI_SCHEMA_URL = 'https://paste.ubuntu.com/p/MJQbSKcCmG/plain/'
+
+const A2UI_SCHEMA_BY_JSON = `
+    ---BEGIN A2UI JSON SCHEMA---
+    ${A2UI_SCHEMA}
+    ---END A2UI JSON SCHEMA URL---
+    `
+const A2UI_SCHEMA_BY_URL = `
+        ---BEGIN A2UI JSON SCHEMA URL, PLEASE READ SCHEMA FROM THIS URL BELOW---
+    ${A2UI_SCHEMA_URL}
+    ---END A2UI JSON SCHEMA---
+    `
+
 /**
  * Constructs the full prompt with UI instructions, rules, examples, and schema.
  *
@@ -822,7 +835,7 @@ function get_ui_prompt(base_url, examples) {
 
     ---BEGIN A2UI JSON SCHEMA---
     ${A2UI_SCHEMA}
-    ---END A2UI JSON SCHEMA---
+    ---END A2UI JSON SCHEMA URL---
     `;
 }
 

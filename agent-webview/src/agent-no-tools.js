@@ -28,7 +28,7 @@ const AGENT_INSTRUCTION = `
             "imageUrl": "https://images.unsplash.com/photo-...", // You MUST generate a real, publicly accessible image URL (e.g. from Unsplash) that depicts the food or restaurant atmosphere
             "rating": "★★★★☆", // 1-5 stars
             "infoLink": "[More Info](https://example.com)",
-            "address": "Address string"
+            "address": "Address string" // Ensure the address is comprehensive and precise, leaving no ambiguity for navigation.
         }
         b. **Restaurant Count Rules:**
            - Default to generating 5 restaurants if the user does not specify a number.
@@ -83,11 +83,13 @@ export class RestaurantAgent {
             // The model will see {{base_url}} in the examples from get_ui_prompt_gen which does replacement.
             // For AGENT_INSTRUCTION, I'll do a simple replace too to be safe, though get_ui_prompt_gen handles the main examples.
             
+            const sysPromptStartTime = performance.now();
             let instruction = AGENT_INSTRUCTION.replace(/\{\{\s*base_url\s*\}\}/g, this.baseUrl);
-
             const systemContent = this.useUI
                 ? instruction + get_ui_prompt_gen(this.baseUrl, RESTAURANT_UI_EXAMPLES)
                 : get_text_prompt_gen();
+            const sysPromptEndTime = performance.now();
+            console.log(`[Timing] System prompt construction took ${(sysPromptEndTime - sysPromptStartTime).toFixed(2)}ms`);
 
             sessionStore.set(sessionId, {
                 messages: [{ role: "system", content: systemContent }],
@@ -95,9 +97,12 @@ export class RestaurantAgent {
             });
         }
 
+        const msgPrepStartTime = performance.now();
         const session = sessionStore.get(sessionId);
         let currentMessages = session.messages;
         currentMessages.push({ role: "user", content: query });
+        const msgPrepEndTime = performance.now();
+        console.log(`[Timing] Message preparation (user query) took ${(msgPrepEndTime - msgPrepStartTime).toFixed(2)}ms`);
 
         const maxRetries = 1;
         let attempt = 0;
@@ -110,22 +115,35 @@ export class RestaurantAgent {
                 // Yield initial status
                 yield { is_task_complete: false, updates: "Thinking..." };
 
+                const reqBodyStartTime = performance.now();
                 const config = configManager.getAPIConfig();
                 
                 // No tools provided here
-                const response = await this.openai.createChatCompletion({
+                const requestOptions = {
                     model: config.model,
                     messages: currentMessages,
                     // tools: toolDefinitions, // REMOVED
                     // tool_choice: "auto"     // REMOVED
-                });
+                };
+                const reqBodyEndTime = performance.now();
+                console.log(`[Timing] Request body construction took ${(reqBodyEndTime - reqBodyStartTime).toFixed(2)}ms`);
+
+                const netStartTime = performance.now();
+                const response = await this.openai.createChatCompletion(requestOptions);
+                console.log(`response json: ${JSON.stringify(response)}`);
+                const netEndTime = performance.now();
+                console.log(`[Timing] Send request and wait response took ${(netEndTime - netStartTime).toFixed(2)}ms`);
 
                 const responseMessage = response.choices[0].message;
                 const finalContent = responseMessage.content;
 
                 // UI 验证
                 if (this.useUI) {
+                    const uiVerStartTime = performance.now();
                     const validation = this._validateUI(finalContent);
+                    const uiVerEndTime = performance.now();
+                    console.log(`[Timing] UI Verification took ${(uiVerEndTime - uiVerStartTime).toFixed(2)}ms`);
+
                     if (validation.ok) {
                         currentMessages.push({ role: "assistant", content: finalContent });
                         yield { is_task_complete: true, content: finalContent };
@@ -133,9 +151,12 @@ export class RestaurantAgent {
                     } else {
                         console.error(`Invalid UI Response: ${validation.error}`);
                         if (attempt <= maxRetries) {
+                            const retryPrepStartTime = performance.now();
                             const retryPrompt = `Your previous response was invalid. ${validation.error} ` +
                                 `Please retry the original request: '${query}'`;
                             currentMessages.push({ role: "user", content: retryPrompt });
+                            const retryPrepEndTime = performance.now();
+                            console.log(`[Timing] Message preparation (retry) took ${(retryPrepEndTime - retryPrepStartTime).toFixed(2)}ms`);
                             continue;
                         }
                     }

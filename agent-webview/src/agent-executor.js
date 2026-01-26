@@ -37,6 +37,7 @@ export class RestaurantAgentExecutor {
         // 根据是否激活 A2UI 扩展选择 Agent
         const agent = useUI ? this.uiAgent : this.textAgent;
 
+        const parseMsgStartTime = performance.now();
         // 解析用户消息
         if (requestContext.userMessage && requestContext.userMessage.parts) {
             console.info(`--- Processing ${requestContext.userMessage.parts.length} message parts ---`);
@@ -59,7 +60,7 @@ export class RestaurantAgentExecutor {
         // 处理 UI 事件或提取文本查询
         if (uiEventPart) {
             console.info(`Received a2ui ClientEvent: ${JSON.stringify(uiEventPart)}`);
-            action = uiEventPart.actionName;
+            action = uiEventPart.actionName || uiEventPart.name;
             const ctx = uiEventPart.context || {};
 
             if (action === 'book_restaurant') {
@@ -84,6 +85,9 @@ export class RestaurantAgentExecutor {
                 .join(' ');
         }
 
+        const parseMsgEndTime = performance.now();
+        console.log(`[Timing] User message parsing took ${(parseMsgEndTime - parseMsgStartTime).toFixed(2)}ms`);
+
         console.info(`--- Final query for LLM: '${query.substring(0, 100)}...' ---`);
 
         // 构建任务对象
@@ -103,8 +107,18 @@ export class RestaurantAgentExecutor {
         }
 
         try {
+            const execStartTime = performance.now();
+            console.log(`[Timing] Start querying at ${new Date().toISOString()}`);
+            let itemCount = 0;
+            let lastItemPerfTime = execStartTime;
+
             // 使用 Agent 的 stream 方法获取结果
             for await (const item of agent.stream(query, task.contextId)) {
+                itemCount++;
+                const itemPerfNow = performance.now();
+                console.log(`[Timing] Item ${itemCount} received at ${new Date().toISOString()}, duration from last: ${(itemPerfNow - lastItemPerfTime).toFixed(2)}ms`);
+                lastItemPerfTime = itemPerfNow;
+
                 const isTaskComplete = item.is_task_complete;
                 
                 if (!isTaskComplete) {
@@ -190,6 +204,7 @@ export class RestaurantAgentExecutor {
                 };
 
                 eventBus.publish(finalStatusUpdate);
+                console.log(`[Timing] Execution completed. Total time: ${(performance.now() - execStartTime).toFixed(2)}ms. Total items: ${itemCount}`);
                 break;
             }
         } catch (error) {

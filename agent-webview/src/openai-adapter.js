@@ -43,13 +43,18 @@ export class OpenAIAdapter {
             throw new Error('API Base URL not configured. Please inject config via AgentBridge.injectConfig()');
         }
 
+        const targetModel = model || config.model;
         const requestBody = {
-            model: model || config.model,
+            model: targetModel,
             messages,
             tools,
             tool_choice,
             stream
         };
+
+        if (targetModel && targetModel.startsWith('qwen')) {
+            requestBody.enable_thinking = false;
+        }
 
         // 直接使用 fetch（WebView 已配置允许跨域）
         const response = await fetch(`${config.baseURL}/chat/completions`, {
@@ -65,7 +70,6 @@ export class OpenAIAdapter {
             const errorText = await response.text();
             throw new Error(`API Error ${response.status}: ${errorText}`);
         }
-        
         return response.json();
     }
 }
